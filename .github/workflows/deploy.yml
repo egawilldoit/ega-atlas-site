@@ -1,0 +1,73 @@
+name: Deploy EGA Atlas
+on:
+  push:
+    branches: [v5]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [atlas-updated]
+  schedule:
+    - cron: "17 */1 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ega-atlas-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout site
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Remove Quartz example content
+        run: rm -rf content
+      - name: Checkout Atlas content
+        uses: actions/checkout@v6
+        with:
+          repository: egawilldoit/ega-atlas
+          ref: main
+          path: content
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install Quartz
+        run: npm ci
+      - name: Restore plugins from configuration
+        run: npx quartz plugin install --from-config --concurrency 2
+      - name: Build
+        run: npx quartz build
+      - name: Check published scope
+        run: |
+          test -s public/index.html
+          test -s public/now.html
+          test -s public/wiki/projects/gymtrack.html
+          if find public -type f \( -iname 'AGENTS.html' -o -path '*/raw/*' -o -path '*/templates/*' -o -path '*/.agents/*' \) | grep -q .; then
+            echo 'Excluded Atlas files found in output' >&2
+            exit 1
+          fi
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4

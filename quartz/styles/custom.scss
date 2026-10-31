@@ -1,3 +1,29 @@
 @use "./variables.scss" as *;
 
-// put your custom CSS here!
+/* Atlas is for reading. Motion is minimal and accessible. */
+:root {
+  --ega-dur-fast: 120ms;
+  --ega-dur-page: 200ms;
+  --ega-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+article {
+  max-width: 70ch;
+  line-height: 1.65;
+  animation: ega-enter var(--ega-dur-page) var(--ega-ease) both;
+}
+@keyframes ega-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+article table { display: block; max-width: 100%; overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
